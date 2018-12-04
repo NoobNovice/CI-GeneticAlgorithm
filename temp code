@@ -1,0 +1,11 @@
+# # create MLP module
+        # arr_split = []  # create split array to use in numpy
+        # for i in range(1, len(self.__mlp_structure)):
+        #     arr_split.append(self.__mlp_structure[i - 1] * self.__mlp_structure[i])
+        #     arr_split.append(self.__mlp_structure[i])
+        # mlp_module = []
+        # mlp_module.append(arr_input)
+        # mlp_module.extend(self.split(chromosome, arr_split))
+        # print(mlp_module)
+
+        # feed data
