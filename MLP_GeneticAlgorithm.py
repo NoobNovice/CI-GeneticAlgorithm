@@ -52,36 +52,49 @@ class MLP_GeneticAlgorithm:
             if min(fitness) < min_fitness:
                 result = copy.deepcopy(self.__individual[fitness.index(min(fitness))])
                 min_fitness = min(fitness)
+
+            pool_fitness = []
             mating_pool = []
             child_pool = []
 
             # selection parent
             # guarantee parent one
             mating_pool.append(self.__individual.pop(fitness.index(min(fitness))))
-            fitness.pop(fitness.index(min(fitness)))
+            pool_fitness.append(fitness.pop(fitness.index(min(fitness))))
             for i in range(0, int(len(self.__individual) * 0.1) - 1):  # keep chromosome has best fitness
                 mating_pool.append(self.__individual.pop(fitness.index(min(fitness))))
-                fitness.pop(fitness.index(min(fitness)))
+                pool_fitness.append(fitness.pop(fitness.index(min(fitness))))
 
-            # random selection individual to cross over
+            # cross over
             while True:
                 if len(mating_pool) + len(child_pool) + 2 > self.__num_individual:
                     break
-                index_mating = random.randint(0, len(mating_pool) - 1)
-                index_individual = random.randint(0, len(self.__individual) - 1)
-                x, y = self.cross_over(mating_pool[index_mating], self.__individual[index_individual])
+
+                # # type 1: random selection individual to cross over
+                # index_mating = random.randint(0, len(mating_pool) - 1)
+                # index_individual = random.randint(0, len(self.__individual) - 1)
+                # x, y = self.cross_over(mating_pool[index_mating], self.__individual[index_individual])
+                # child_pool.append(x)
+                # child_pool.append(y)
+
+                # type 2: best fitness cross best fitness
+                index_mating1 = random.randint(0, len(mating_pool) - 1)
+                index_mating2 = random.randint(0, len(mating_pool) - 1)
+                x, y = self.cross_over(mating_pool[index_mating1], self.__individual[index_mating2])
                 child_pool.append(x)
                 child_pool.append(y)
 
-            mating_pool.extend(child_pool)
             # elitism
-            while len(mating_pool) < self.__num_individual:
-                mating_pool.append(self.__individual[random.randint(0, len(self.__individual) - 1)])
+            while len(mating_pool) + len(child_pool) < self.__num_individual:
+                index = random.randint(0, len(self.__individual) - 1)
+                mating_pool.append(self.__individual[index])
+                pool_fitness.append(fitness[index])
 
             # mutation
-            for chromosome in mating_pool:
-                self.strong_mutation(chromosome)
+            for index_chromosome in range(len(mating_pool)):
+                self.fitness_mutation(mating_pool[index_chromosome], pool_fitness[index_chromosome], 0.15)
 
+            mating_pool.extend(child_pool)
             # to next generation
             self.__individual = mating_pool
             t += 1
@@ -107,7 +120,7 @@ class MLP_GeneticAlgorithm:
                     v += chromosome[w_index] * input_of_layer[i_index]
                 b_index = bias_index
                 v += chromosome[b_index]
-                arr.append(self.activation_func2(v))
+                arr.append(self.activation_func(v))
                 # update index
                 bias_index += 1
                 weight_index += 1
@@ -123,13 +136,9 @@ class MLP_GeneticAlgorithm:
         return y
 
     @staticmethod
-    def activation_func2(v):
-        return v
-
-    @staticmethod
     def fitness_error(output, design_output):
         error_output = numpy.subtract(design_output, output)
-        e = numpy.sum(numpy.power(error_output, 2)) / len(error_output)
+        e = numpy.sum(numpy.fabs(error_output)) / len(error_output)
         return e
 
     @staticmethod
@@ -145,11 +154,19 @@ class MLP_GeneticAlgorithm:
         return p1, p2
 
     @staticmethod
-    def strong_mutation(chromosome):
-        for i in chromosome:
+    def strong_mutation(chromosomes, learning_rate):
+        for chromosome in chromosomes:
             p = random.uniform(0, 1)
             if p < 0.5:
-                i += random.uniform(0, 1)
+                chromosome += random.uniform(-learning_rate, learning_rate)
+        return
+
+    @staticmethod
+    def fitness_mutation(chromosomes, fitness, learning_rate):
+        for chromosome in chromosomes:
+            p = random.uniform(0, 1)
+            if p < fitness:
+                chromosome += random.uniform(-learning_rate, learning_rate)
         return
 
     # test neuron network
@@ -158,7 +175,6 @@ class MLP_GeneticAlgorithm:
         return [0] * num_arr
 
     def test_classification(self, test_arr, design_arr, chromosome, round_test):
-        print(len(design_arr))
         result = 0
         confusion_matrix = []
         for i in range(len(design_arr[0])):
@@ -169,20 +185,16 @@ class MLP_GeneticAlgorithm:
             # feed data
             output = self.feed_forward(test_arr[cur_row], chromosome)
             # set 1 0 and output compare design output
-            has_class = False
+            assume_index = output.index(max(output))
+            # set 1 0 output
             for index_output in range(len(output)):
-                # i am assume output equal 1 in one class
-                if has_class:
-                    output[index_output] = 0
-                elif output[index_output] > 0.5:  # output = 1
-                    has_class = True
+                if index_output == assume_index:
                     output[index_output] = 1
-                    for index_design in range(len(design_arr[cur_row])):
-                        if design_arr[cur_row][index_design] == 1:
-                            confusion_matrix[index_output][index_design] += 1
                 else:
                     output[index_output] = 0
 
+            # update matrix
+            confusion_matrix[assume_index][design_arr[cur_row].index(max(design_arr[cur_row]))] += 1
             if numpy.array_equal(design_arr[cur_row], output):
                 result += 1
 
