@@ -67,16 +67,8 @@ class MLP_GeneticAlgorithm:
 
             # cross over
             while True:
-                if len(mating_pool) + len(child_pool) + 2 > self.__num_individual:
+                if len(mating_pool) + len(child_pool) + 2 > int(self.__num_individual*0.9):
                     break
-
-                # # type 1: random selection individual to cross over
-                # index_mating = random.randint(0, len(mating_pool) - 1)
-                # index_individual = random.randint(0, len(self.__individual) - 1)
-                # x, y = self.cross_over(mating_pool[index_mating], self.__individual[index_individual])
-                # child_pool.append(x)
-                # child_pool.append(y)
-
                 # type 2: best fitness cross best fitness
                 index_mating1 = random.randint(0, len(mating_pool) - 1)
                 index_mating2 = random.randint(0, len(mating_pool) - 1)
@@ -92,7 +84,7 @@ class MLP_GeneticAlgorithm:
 
             # mutation
             for index_chromosome in range(len(mating_pool)):
-                self.fitness_mutation(mating_pool[index_chromosome], pool_fitness[index_chromosome], 0.15)
+                self.fitness_mutation(mating_pool[index_chromosome], pool_fitness[index_chromosome], 0.1)
 
             mating_pool.extend(child_pool)
             # to next generation
@@ -181,6 +173,7 @@ class MLP_GeneticAlgorithm:
             confusion_matrix.append(self.init_array(len(design_arr[0])))  # design output 1 or 0
 
         self.__report.write("fold {}\n".format(round_test))
+        self.__report.write("chromosome: {}\n".format(chromosome))
         for cur_row in range(len(test_arr)):
             # feed data
             output = self.feed_forward(test_arr[cur_row], chromosome)
